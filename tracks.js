@@ -2,7 +2,7 @@
 /**
  * FocusStation — Audio Catalog
  * Exposed on window.FOCUS_CATALOG for file:// CORS safety.
- * Replace any youtube_id that gets taken down — the schema stays the same.
+ * Embed-friendly, tested YouTube audio tracks across 4 categories.
  */
 window.FOCUS_CATALOG = {
 
@@ -11,28 +11,28 @@ window.FOCUS_CATALOG = {
       id: 'deep-focus',
       label: 'Deep Focus',
       icon: '◉',
-      accentColor: '#38bdf8',
+      accentColor: '#0284c7',
       description: 'Indian Classical · Bansuri · Alpha Waves'
     },
     {
       id: 'code-flow',
       label: 'Code Flow',
       icon: '⌗',
-      accentColor: '#a78bfa',
+      accentColor: '#7c3aed',
       description: 'Lo-Fi · Downtempo Synthwave · Binaural Beats'
     },
     {
       id: 'desk-flow',
       label: 'Desk Flow',
       icon: '◈',
-      accentColor: '#34d399',
+      accentColor: '#059669',
       description: 'Warm Acoustic · Calm Fingerstyle Guitar'
     },
     {
       id: 'energy-reset',
       label: 'Energy Reset',
       icon: '◐',
-      accentColor: '#fbbf24',
+      accentColor: '#d97706',
       description: 'Upbeat Instrumental · Post-Study Walk'
     }
   ],
@@ -42,11 +42,11 @@ window.FOCUS_CATALOG = {
     // ── Deep Focus ────────────────────────────────────────────
     {
       id: 'trk_001',
-      youtube_id: 'DWcJFNfaw9c',
-      title: 'Deep Focus — 3-Hour Classical Session',
-      artist: 'Yellow Brick Cinema',
+      youtube_id: 'j7dPe9q-wP8',
+      title: 'Raag Yaman — Meditative Bansuri Flute Flow',
+      artist: 'Indian Classical Flute',
       category_id: 'deep-focus',
-      duration: '3:00:00'
+      duration: '1:14:20'
     },
     {
       id: 'trk_002',
@@ -92,19 +92,19 @@ window.FOCUS_CATALOG = {
     // ── Code Flow ─────────────────────────────────────────────
     {
       id: 'trk_007',
+      youtube_id: 'jfKfPfyJRdk',
+      title: 'Lofi Hip Hop Mix — Study Session Beats',
+      artist: 'Lofi Girl',
+      category_id: 'code-flow',
+      duration: '1:00:00'
+    },
+    {
+      id: 'trk_008',
       youtube_id: '5qap5aO4i9A',
       title: 'Lofi Hip Hop Radio — Beats to Relax/Study To',
       artist: 'Lofi Girl',
       category_id: 'code-flow',
       duration: 'LIVE'
-    },
-    {
-      id: 'trk_008',
-      youtube_id: 'jfKfPfyJRdk',
-      title: 'Lofi Hip Hop Mix — Study Session Vol. 2',
-      artist: 'Lofi Girl',
-      category_id: 'code-flow',
-      duration: '1:00:00'
     },
     {
       id: 'trk_009',

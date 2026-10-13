@@ -3,6 +3,7 @@
 /**
  * FocusStation — Distraction-Free Audio Workstation
  * Application Controller & Audio Engine Architecture
+ * Light Studio Theme Edition
  */
 
 // ════════════════════════════════════════════════════════════════
@@ -426,7 +427,7 @@ const FocusTimer = {
     if (badgeStatus) badgeStatus.textContent = this.isRunning ? 'Running' : 'Ready';
     if (badge) badge.classList.toggle('is-running', this.isRunning);
 
-    // Sync mobile preset selector if present
+    // Sync mobile preset selector
     const mPreset = document.getElementById('m-timer-preset');
     if (mPreset && String(mPreset.value) !== String(this.preset)) {
       mPreset.value = String(this.preset);
@@ -529,21 +530,22 @@ const PlayerEngine = {
       case 0:
         this._onEnded();
         break;
-      case 3:
-        break;
       default:
         break;
     }
   },
 
+  /**
+   * Card-Click Auto-Skip Bug Fix:
+   * Do NOT automatically call this.playNext() on error.
+   * Pause cleanly and notify user.
+   */
   _onError(event) {
-    console.error('FocusStation: YouTube Player Error Code', event.data);
-    if (event.data === 100 || event.data === 150) {
-      UIController.showToast('Track unavailable. Skipping to next...');
-      this.playNext();
-    } else {
-      UIController.showToast('Playback issue (code ' + event.data + ')');
-    }
+    console.warn('FocusStation: YouTube Player Error Code', event.data);
+    this.isPlaying = false;
+    UIController.setPlayState(false);
+    this.stopSeekSync();
+    UIController.showToast('This track cannot be embedded. Please choose another.');
   },
 
   _onPlaying() {
@@ -606,12 +608,15 @@ const PlayerEngine = {
     return arr;
   },
 
+  /**
+   * Direct, robust track loading with queue preservation
+   */
   loadTrack(trackId) {
     if (!window.FOCUS_CATALOG || !Array.isArray(window.FOCUS_CATALOG.tracks)) return;
     const track = window.FOCUS_CATALOG.tracks.find(t => t.id === trackId);
     if (!track) return;
 
-    // Check if player is ready
+    // Guard if player is not yet instantiated
     if (!this.player || typeof this.player.loadVideoById !== 'function') {
       this.pendingTrackId = trackId;
       this.currentTrack = track;
@@ -626,8 +631,13 @@ const PlayerEngine = {
       this.buildQueue(track.category_id);
     }
 
-    const index = this.queue.findIndex(t => t.id === track.id);
-    this.queueIndex = index >= 0 ? index : 0;
+    // Direct index mapping — no inadvertent reshuffling
+    let index = this.queue.findIndex(t => t.id === track.id);
+    if (index === -1) {
+      this.queue.unshift(track);
+      index = 0;
+    }
+    this.queueIndex = index;
     this._playTrack(track);
   },
 
@@ -753,7 +763,7 @@ const PlayerEngine = {
     const idx = states.indexOf(this.loopState);
     const nextState = states[(idx + 1) % states.length];
     this.setLoop(nextState);
-    const names = { category: 'Loop Category', single: 'Loop Single', off: 'Loop Off' };
+    const names = { category: 'Loop: Category', single: 'Loop: Single', off: 'Loop: Off' };
     UIController.showToast(names[nextState]);
   },
 
@@ -846,6 +856,35 @@ const UIController = {
   },
   isScrubbing: false,
   _unlocked: false,
+
+  /**
+   * Generates a clean, aesthetic SVG gradient thumbnail
+   * Ensures ZERO gray error boxes if YouTube's CDN is slow, blocked, or missing
+   */
+  generateThumbnailSvg(title, artist, accentColor) {
+    const safeTitle = (title || 'Focus Audio').replace(/[<>&"']/g, '');
+    const safeArtist = (artist || 'FocusStation').replace(/[<>&"']/g, '');
+    const color = accentColor || '#0284c7';
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180" viewBox="0 0 320 180">
+      <defs>
+        <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#f8fafc"/>
+          <stop offset="100%" stop-color="#e2e8f0"/>
+        </linearGradient>
+        <radialGradient id="r" cx="50%" cy="38%" r="65%">
+          <stop offset="0%" stop-color="${color}" stop-opacity="0.25"/>
+          <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <rect width="320" height="180" fill="url(#g)"/>
+      <rect width="320" height="180" fill="url(#r)"/>
+      <circle cx="160" cy="70" r="28" fill="#ffffff" stroke="${color}" stroke-width="2" opacity="0.95"/>
+      <polygon points="155,60 171,70 155,80" fill="${color}"/>
+      <text x="160" y="124" font-family="-apple-system,BlinkMacSystemFont,'Inter',sans-serif" font-size="12" font-weight="600" fill="#0f172a" text-anchor="middle">${safeTitle.slice(0, 32)}</text>
+      <text x="160" y="144" font-family="-apple-system,BlinkMacSystemFont,'Inter',sans-serif" font-size="10" font-weight="500" fill="#64748b" text-anchor="middle">${safeArtist.slice(0, 28)}</text>
+    </svg>`;
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  },
 
   init() {
     this.els = {
@@ -958,7 +997,7 @@ const UIController = {
       this.updateDockSliderFill(this.els.mNoiseSlider, prefs.noiseVolume, 100);
     }
 
-    // Initialize noise type from prefs
+    // Initialize noise type
     if (prefs.noiseType) {
       WebAudioEngine.setNoiseType(prefs.noiseType);
       this.updateNoiseTypeLabels(prefs.noiseType);
@@ -1011,7 +1050,7 @@ const UIController = {
       this.els.shuffleBtn.addEventListener('click', () => PlayerEngine.toggleShuffle());
     }
 
-    // Jitter-Free Seekbar Handlers
+    // Jitter-Free Tactile Seekbar Handlers
     if (this.els.seekbar) {
       const startScrub = () => {
         this.isScrubbing = true;
@@ -1492,7 +1531,7 @@ const UIController = {
       const cat = (window.FOCUS_CATALOG && Array.isArray(window.FOCUS_CATALOG.categories))
         ? window.FOCUS_CATALOG.categories.find(c => c.id === track.category_id)
         : null;
-      const catColor = cat ? cat.accentColor : '#38bdf8';
+      const catColor = cat ? cat.accentColor : '#0284c7';
       const catLabel = cat ? cat.label : track.category_id;
 
       const thumbWrap = document.createElement('div');
@@ -1503,8 +1542,16 @@ const UIController = {
       img.src = `https://img.youtube.com/vi/${track.youtube_id}/mqdefault.jpg`;
       img.alt = '';
       img.loading = 'lazy';
-      img.onerror = function() {
-        this.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='180'%3E%3Crect width='320' height='180' fill='%23171b26'/%3E%3C/svg%3E";
+
+      // Fallback handlers to guarantee zero gray boxes
+      img.onerror = () => {
+        img.onerror = null;
+        img.src = this.generateThumbnailSvg(track.title, track.artist, catColor);
+      };
+      img.onload = () => {
+        if (img.naturalWidth === 120 && img.naturalHeight === 90) {
+          img.src = this.generateThumbnailSvg(track.title, track.artist, catColor);
+        }
       };
 
       const overlay = document.createElement('div');
@@ -1682,6 +1729,11 @@ const UIController = {
           card.setAttribute('data-track-id', track.id);
           card.setAttribute('aria-label', `Play ${track.title}`);
 
+          const cat = (window.FOCUS_CATALOG && Array.isArray(window.FOCUS_CATALOG.categories))
+            ? window.FOCUS_CATALOG.categories.find(c => c.id === track.category_id)
+            : null;
+          const catColor = cat ? cat.accentColor : '#0284c7';
+
           const thumbWrap = document.createElement('div');
           thumbWrap.className = 'shelf-card__thumb-wrap';
 
@@ -1690,8 +1742,15 @@ const UIController = {
           img.src = `https://img.youtube.com/vi/${track.youtube_id}/mqdefault.jpg`;
           img.alt = '';
           img.loading = 'lazy';
-          img.onerror = function() {
-            this.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='90'%3E%3Crect width='120' height='90' fill='%23171b26'/%3E%3C/svg%3E";
+
+          img.onerror = () => {
+            img.onerror = null;
+            img.src = this.generateThumbnailSvg(track.title, track.artist, catColor);
+          };
+          img.onload = () => {
+            if (img.naturalWidth === 120 && img.naturalHeight === 90) {
+              img.src = this.generateThumbnailSvg(track.title, track.artist, catColor);
+            }
           };
 
           const overlay = document.createElement('div');
@@ -1764,6 +1823,11 @@ const UIController = {
           card.setAttribute('data-track-id', track.id);
           card.setAttribute('aria-label', `Play ${track.title}`);
 
+          const cat = (window.FOCUS_CATALOG && Array.isArray(window.FOCUS_CATALOG.categories))
+            ? window.FOCUS_CATALOG.categories.find(c => c.id === track.category_id)
+            : null;
+          const catColor = cat ? cat.accentColor : '#0284c7';
+
           const thumbWrap = document.createElement('div');
           thumbWrap.className = 'shelf-card__thumb-wrap';
 
@@ -1772,8 +1836,15 @@ const UIController = {
           img.src = `https://img.youtube.com/vi/${track.youtube_id}/mqdefault.jpg`;
           img.alt = '';
           img.loading = 'lazy';
-          img.onerror = function() {
-            this.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='90'%3E%3Crect width='120' height='90' fill='%23171b26'/%3E%3C/svg%3E";
+
+          img.onerror = () => {
+            img.onerror = null;
+            img.src = this.generateThumbnailSvg(track.title, track.artist, catColor);
+          };
+          img.onload = () => {
+            if (img.naturalWidth === 120 && img.naturalHeight === 90) {
+              img.src = this.generateThumbnailSvg(track.title, track.artist, catColor);
+            }
           };
 
           const overlay = document.createElement('div');
@@ -1829,6 +1900,15 @@ const UIController = {
     if (this.els.dockThumb) {
       this.els.dockThumb.src = `https://img.youtube.com/vi/${track.youtube_id}/mqdefault.jpg`;
       this.els.dockThumb.alt = track.title;
+      this.els.dockThumb.onerror = () => {
+        this.els.dockThumb.onerror = null;
+        this.els.dockThumb.src = this.generateThumbnailSvg(track.title, track.artist, '#0284c7');
+      };
+      this.els.dockThumb.onload = () => {
+        if (this.els.dockThumb.naturalWidth === 120 && this.els.dockThumb.naturalHeight === 90) {
+          this.els.dockThumb.src = this.generateThumbnailSvg(track.title, track.artist, '#0284c7');
+        }
+      };
     }
     if (this.els.dockFavBtn) {
       const isFav = StorageController.isFavorite(track.id);
