@@ -1408,6 +1408,140 @@ body.is-audio-playing .track-card.is-playing .eq-bar,
   height: 4px;
 }
 
+/* Noise Type Toggle Button (Brown / Pink) */
+.noise-type-btn {
+  font-family: 'JetBrains Mono', 'SF Mono', monospace;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 7px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  outline: none;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.noise-type-btn:hover {
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+.noise-type-btn.is-pink {
+  color: #f472b6;
+  border-color: rgba(244, 114, 182, 0.4);
+  background: rgba(244, 114, 182, 0.1);
+}
+
+.mobile-only-btn {
+  display: none;
+}
+
+/* Mobile Tools Drawer Sheet */
+.mobile-tools-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 450;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: none;
+  visibility: hidden;
+  transition: visibility var(--transition-std);
+}
+
+.mobile-tools-sheet:not([aria-hidden='true']) {
+  pointer-events: auto;
+  visibility: visible;
+}
+
+.mobile-tools-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 9, 13, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  opacity: 0;
+  transition: opacity var(--transition-std);
+}
+
+.mobile-tools-sheet:not([aria-hidden='true']) .mobile-tools-backdrop {
+  opacity: 1;
+}
+
+.mobile-tools-panel {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 500px;
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  padding: 16px 20px calc(var(--dock-height) + 16px);
+  box-shadow: var(--shadow-modal);
+  transform: translateY(100%);
+  transition: transform var(--transition-slow);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mobile-tools-sheet:not([aria-hidden='true']) .mobile-tools-panel {
+  transform: translateY(0);
+}
+
+.mobile-tools-handle {
+  width: 36px;
+  height: 4px;
+  background: var(--border-hover);
+  border-radius: var(--radius-pill);
+  margin: 0 auto -4px;
+}
+
+.mobile-tools-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.mobile-tools-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.mobile-tool-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.mobile-tool-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.mobile-tool-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* --------------------------------------------------------------------------
    ZEN OVERLAY
    -------------------------------------------------------------------------- */
@@ -1848,6 +1982,10 @@ body.is-audio-playing .track-card.is-playing .eq-bar,
 
   .dock__right {
     display: none;
+  }
+
+  .mobile-only-btn {
+    display: flex;
   }
 
   .dock__transport {

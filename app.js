@@ -105,6 +105,7 @@ const StorageController = {
     const defaults = {
       volume: 80,
       noiseVolume: 30,
+      noiseType: 'brown',
       loopState: 'category',
       shuffleOn: false
     };
@@ -121,13 +122,15 @@ const StorageController = {
 
 
 // ════════════════════════════════════════════════════════════════
-// 2. WebAudioEngine — Brown Noise Generator
+// 2. WebAudioEngine — Procedural Noise & Chime Generator
 // ════════════════════════════════════════════════════════════════
 const WebAudioEngine = {
   ctx: null,
   gainNode: null,
   bufferSource: null,
   isPlaying: false,
+  noiseType: 'brown', // 'brown' | 'pink'
+  currentVolume: 30,
 
   init() {
     if (this.ctx) return true;
@@ -158,7 +161,33 @@ const WebAudioEngine = {
         data[i] = lastOut * 3.5;
       }
     }
+    return buffer;
+  },
 
+  /**
+   * Paul Kellet's filtered white noise algorithm for pink noise synthesis
+   */
+  _generatePinkNoiseBuffer() {
+    const sampleRate = this.ctx.sampleRate;
+    const bufferSize = sampleRate * 4;
+    const buffer = this.ctx.createBuffer(2, bufferSize, sampleRate);
+
+    for (let channel = 0; channel < 2; channel++) {
+      const data = buffer.getChannelData(channel);
+      let b0 = 0.0, b1 = 0.0, b2 = 0.0, b3 = 0.0, b4 = 0.0, b5 = 0.0, b6 = 0.0;
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        b0 = 0.99886 * b0 + white * 0.0555179;
+        b1 = 0.99332 * b1 + white * 0.0750759;
+        b2 = 0.96900 * b2 + white * 0.1538520;
+        b3 = 0.86650 * b3 + white * 0.3104856;
+        b4 = 0.55000 * b4 + white * 0.5329522;
+        b5 = -0.7616 * b5 - white * 0.0168980;
+        const pink = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+        b6 = white * 0.115926;
+        data[i] = pink * 0.11;
+      }
+    }
     return buffer;
   },
 
@@ -174,12 +203,15 @@ const WebAudioEngine = {
 
     this.stop();
 
+    this.currentVolume = typeof volume === 'number' ? volume : this.currentVolume;
     this.bufferSource = this.ctx.createBufferSource();
-    this.bufferSource.buffer = this._generateBrownNoiseBuffer();
+    this.bufferSource.buffer = this.noiseType === 'pink'
+      ? this._generatePinkNoiseBuffer()
+      : this._generateBrownNoiseBuffer();
     this.bufferSource.loop = true;
     this.bufferSource.connect(this.gainNode);
 
-    const targetGain = (volume / 100) * 0.3;
+    const targetGain = (this.currentVolume / 100) * 0.3;
     this.gainNode.gain.setValueAtTime(targetGain, this.ctx.currentTime);
 
     this.bufferSource.start(0);
@@ -200,10 +232,25 @@ const WebAudioEngine = {
   },
 
   setVolume(vol) {
+    this.currentVolume = vol;
     if (this.gainNode && this.ctx) {
       const targetGain = (vol / 100) * 0.3;
       this.gainNode.gain.setValueAtTime(targetGain, this.ctx.currentTime);
     }
+  },
+
+  setNoiseType(type) {
+    this.noiseType = type === 'pink' ? 'pink' : 'brown';
+    StorageController.setPref('noiseType', this.noiseType);
+    if (this.isPlaying) {
+      this.start(this.currentVolume);
+    }
+  },
+
+  toggleNoiseType() {
+    const nextType = this.noiseType === 'brown' ? 'pink' : 'brown';
+    this.setNoiseType(nextType);
+    return nextType;
   },
 
   toggle(volume) {
@@ -218,6 +265,47 @@ const WebAudioEngine = {
     if (this.ctx && this.ctx.state === 'suspended') {
       this.ctx.resume();
     }
+  },
+
+  /**
+   * Gentle 2-tone Solfeggio bell chime (528 Hz fading to 396 Hz over 1.8s)
+   */
+  playCompletionChime() {
+    if (!this.ctx) {
+      const ready = this.init();
+      if (!ready) return;
+    }
+    if (this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+
+    const now = this.ctx.currentTime;
+
+    // Tone 1: 528 Hz (Miracle / Transformation sine chime)
+    const osc1 = this.ctx.createOscillator();
+    const gain1 = this.ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(528, now);
+    gain1.gain.setValueAtTime(0.0001, now);
+    gain1.gain.exponentialRampToValueAtTime(0.24, now + 0.04);
+    gain1.gain.exponentialRampToValueAtTime(0.0001, now + 1.2);
+    osc1.connect(gain1);
+    gain1.connect(this.ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 1.25);
+
+    // Tone 2: 396 Hz (Harmonic grounding tone, begins at +0.35s)
+    const osc2 = this.ctx.createOscillator();
+    const gain2 = this.ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(396, now + 0.35);
+    gain2.gain.setValueAtTime(0.0001, now + 0.35);
+    gain2.gain.exponentialRampToValueAtTime(0.20, now + 0.39);
+    gain2.gain.exponentialRampToValueAtTime(0.0001, now + 1.8);
+    osc2.connect(gain2);
+    gain2.connect(this.ctx.destination);
+    osc2.start(now + 0.35);
+    osc2.stop(now + 1.85);
   }
 };
 
@@ -258,6 +346,11 @@ const FocusTimer = {
     if (tPauseIcon) tPauseIcon.style.display = 'block';
     if (timerPlayBtn) timerPlayBtn.setAttribute('aria-label', 'Pause timer');
 
+    const mtPlay = document.getElementById('m-t-play-icon');
+    const mtPause = document.getElementById('m-t-pause-icon');
+    if (mtPlay) mtPlay.style.display = 'none';
+    if (mtPause) mtPause.style.display = 'block';
+
     this.updateDisplay();
 
     this.intervalId = setInterval(() => {
@@ -284,6 +377,11 @@ const FocusTimer = {
     if (tPauseIcon) tPauseIcon.style.display = 'none';
     if (timerPlayBtn) timerPlayBtn.setAttribute('aria-label', 'Start timer');
 
+    const mtPlay = document.getElementById('m-t-play-icon');
+    const mtPause = document.getElementById('m-t-pause-icon');
+    if (mtPlay) mtPlay.style.display = 'block';
+    if (mtPause) mtPause.style.display = 'none';
+
     this.updateDisplay();
   },
 
@@ -303,7 +401,9 @@ const FocusTimer = {
 
   _complete() {
     this.pause();
-    PlayerEngine.fadeOutAndPause(FADE_DURATION_MS, () => {});
+    PlayerEngine.fadeOutAndPause(FADE_DURATION_MS, () => {
+      WebAudioEngine.playCompletionChime();
+    });
     UIController.showTimerDone();
     this.updateDisplay();
     if (typeof this.onCompleteCb === 'function') {
@@ -326,6 +426,16 @@ const FocusTimer = {
     if (badgeStatus) badgeStatus.textContent = this.isRunning ? 'Running' : 'Ready';
     if (badge) badge.classList.toggle('is-running', this.isRunning);
 
+    // Sync mobile preset selector if present
+    const mPreset = document.getElementById('m-timer-preset');
+    if (mPreset && String(mPreset.value) !== String(this.preset)) {
+      mPreset.value = String(this.preset);
+    }
+    const dPreset = document.getElementById('timer-preset');
+    if (dPreset && String(dPreset.value) !== String(this.preset)) {
+      dPreset.value = String(this.preset);
+    }
+
     const timerDoneOverlay = document.getElementById('timer-done-overlay');
     if (timerDoneOverlay && timerDoneOverlay.getAttribute('aria-hidden') === 'false' && this.remainingSeconds > 0) {
       UIController.hideTimerDone();
@@ -344,6 +454,7 @@ const FocusTimer = {
 const PlayerEngine = {
   player: null,
   currentTrack: null,
+  pendingTrackId: null,
   queue: [],
   queueIndex: 0,
   originalQueue: [],
@@ -391,6 +502,16 @@ const PlayerEngine = {
     if (typeof prefs.shuffleOn === 'boolean') {
       this.shuffleOn = prefs.shuffleOn;
       UIController.updateShuffleBtn(this.shuffleOn);
+    }
+
+    // Startup Race Condition Resolution:
+    if (this.pendingTrackId) {
+      const trackId = this.pendingTrackId;
+      this.pendingTrackId = null;
+      this.loadTrack(trackId);
+      if (UIController._unlocked) {
+        this.play();
+      }
     }
 
     UIController.onPlayerReady();
@@ -489,6 +610,16 @@ const PlayerEngine = {
     if (!window.FOCUS_CATALOG || !Array.isArray(window.FOCUS_CATALOG.tracks)) return;
     const track = window.FOCUS_CATALOG.tracks.find(t => t.id === trackId);
     if (!track) return;
+
+    // Check if player is ready
+    if (!this.player || typeof this.player.loadVideoById !== 'function') {
+      this.pendingTrackId = trackId;
+      this.currentTrack = track;
+      UIController.updateDockTrack(track);
+      StorageController.addToRecent(track);
+      UIController.renderShelves();
+      return;
+    }
 
     const currentCat = this.queue.length > 0 ? this.queue[0].category_id : null;
     if (this.queue.length === 0 || track.category_id !== currentCat) {
@@ -598,27 +729,32 @@ const PlayerEngine = {
   },
 
   getCurrentTime() {
-    return (this.player && typeof this.player.getCurrentTime === 'function')
-      ? this.player.getCurrentTime()
-      : 0;
+    if (this.player && typeof this.player.getCurrentTime === 'function') {
+      return this.player.getCurrentTime() || 0;
+    }
+    return 0;
   },
 
   getDuration() {
-    return (this.player && typeof this.player.getDuration === 'function')
-      ? this.player.getDuration()
-      : 0;
+    if (this.player && typeof this.player.getDuration === 'function') {
+      return this.player.getDuration() || 0;
+    }
+    return 0;
   },
 
   setLoop(state) {
     this.loopState = state;
-    StorageController.setPref('loopState', state);
     UIController.updateLoopBtn(state);
+    StorageController.setPref('loopState', state);
   },
 
   cycleLoop() {
     const states = ['category', 'single', 'off'];
-    const nextIdx = (states.indexOf(this.loopState) + 1) % states.length;
-    this.setLoop(states[nextIdx]);
+    const idx = states.indexOf(this.loopState);
+    const nextState = states[(idx + 1) % states.length];
+    this.setLoop(nextState);
+    const names = { category: 'Loop Category', single: 'Loop Single', off: 'Loop Off' };
+    UIController.showToast(names[nextState]);
   },
 
   toggleShuffle() {
@@ -626,18 +762,23 @@ const PlayerEngine = {
     if (this.shuffleOn) {
       this._fisherYates(this.queue);
       if (this.currentTrack) {
-        const idx = this.queue.findIndex(t => t.id === this.currentTrack.id);
-        this.queueIndex = idx >= 0 ? idx : 0;
+        const curIdx = this.queue.findIndex(t => t.id === this.currentTrack.id);
+        if (curIdx >= 0) {
+          this.queueIndex = curIdx;
+        }
       }
     } else {
       this.queue = [...this.originalQueue];
       if (this.currentTrack) {
-        const idx = this.queue.findIndex(t => t.id === this.currentTrack.id);
-        this.queueIndex = idx >= 0 ? idx : 0;
+        const curIdx = this.queue.findIndex(t => t.id === this.currentTrack.id);
+        if (curIdx >= 0) {
+          this.queueIndex = curIdx;
+        }
       }
     }
     StorageController.setPref('shuffleOn', this.shuffleOn);
     UIController.updateShuffleBtn(this.shuffleOn);
+    UIController.showToast(this.shuffleOn ? 'Shuffle enabled' : 'Shuffle disabled');
   },
 
   startSeekSync() {
@@ -655,41 +796,41 @@ const PlayerEngine = {
   },
 
   fadeOutAndPause(durationMs, callback) {
-    const startVol = (this.player && typeof this.player.getVolume === 'function')
-      ? this.player.getVolume()
-      : (StorageController.getPrefs().volume || 80);
+    if (!this.player || !this.isPlaying) {
+      if (typeof callback === 'function') callback();
+      return;
+    }
 
-    this.volumeBeforeFade = startVol;
-    const steps = FADE_STEPS;
-    const intervalTime = Math.max(10, Math.floor(durationMs / steps));
-    let step = 0;
+    const initialVol = typeof this.player.getVolume === 'function' ? this.player.getVolume() : 80;
+    this.volumeBeforeFade = initialVol;
 
-    const fadeInterval = setInterval(() => {
-      step++;
-      const fraction = 1 - (step / steps);
-      const newVol = Math.max(0, Math.round(startVol * fraction));
+    const stepInterval = durationMs / FADE_STEPS;
+    let currentStep = 0;
 
+    const fadeTimer = setInterval(() => {
+      currentStep++;
+      const currentVol = Math.max(0, initialVol * (1 - currentStep / FADE_STEPS));
       if (this.player && typeof this.player.setVolume === 'function') {
-        this.player.setVolume(newVol);
+        this.player.setVolume(currentVol);
       }
 
-      if (step >= steps) {
-        clearInterval(fadeInterval);
+      if (currentStep >= FADE_STEPS) {
+        clearInterval(fadeTimer);
         this.pause();
         if (this.player && typeof this.player.setVolume === 'function') {
-          this.player.setVolume(startVol);
+          this.player.setVolume(this.volumeBeforeFade);
         }
         if (typeof callback === 'function') {
           callback();
         }
       }
-    }, intervalTime);
+    }, stepInterval);
   }
 };
 
 
 // ════════════════════════════════════════════════════════════════
-// 5. UIController — DOM Rendering + Event Handling
+// 5. UIController — DOM Rendering & User Interaction Matrix
 // ════════════════════════════════════════════════════════════════
 const UIController = {
   els: {},
@@ -700,17 +841,18 @@ const UIController = {
     pipVisible: false,
     pipCollapsed: true,
     muted: false,
-    searchDebounce: null
+    searchDebounce: null,
+    mobileToolsOpen: false
   },
+  isScrubbing: false,
   _unlocked: false,
-  _toastTimeout: null,
-  _toastFadeTimeout: null,
 
   init() {
     this.els = {
       app: document.getElementById('app'),
       unlockOverlay: document.getElementById('unlock-overlay'),
       unlockBtn: document.getElementById('unlock-btn'),
+      header: document.getElementById('header'),
       dock: document.getElementById('dock'),
       dockThumb: document.getElementById('dock-thumb'),
       dockTitle: document.getElementById('dock-title'),
@@ -736,6 +878,8 @@ const UIController = {
       tPlayIcon: document.getElementById('t-play-icon'),
       tPauseIcon: document.getElementById('t-pause-icon'),
       noiseToggleBtn: document.getElementById('noise-toggle-btn'),
+      noiseTypeBtn: document.getElementById('noise-type-btn'),
+      noiseTypeLabel: document.getElementById('noise-type-label'),
       noiseSlider: document.getElementById('noise-slider'),
       muteBtn: document.getElementById('mute-btn'),
       volumeSlider: document.getElementById('volume-slider'),
@@ -772,7 +916,21 @@ const UIController = {
       timerDoneRestart: document.getElementById('timer-done-restart'),
       timerDoneDismiss: document.getElementById('timer-done-dismiss'),
       toast: document.getElementById('toast'),
-      workspace: document.getElementById('workspace')
+      workspace: document.getElementById('workspace'),
+      // Mobile Drawer Elements
+      mobileToolsBtn: document.getElementById('mobile-tools-btn'),
+      mobileToolsSheet: document.getElementById('mobile-tools-sheet'),
+      mobileToolsBackdrop: document.getElementById('mobile-tools-backdrop'),
+      mobileToolsClose: document.getElementById('mobile-tools-close'),
+      mTimerPreset: document.getElementById('m-timer-preset'),
+      mTimerPlayBtn: document.getElementById('m-timer-play-btn'),
+      mTimerResetBtn: document.getElementById('m-timer-reset-btn'),
+      mNoiseToggleBtn: document.getElementById('m-noise-toggle-btn'),
+      mNoiseTypeBtn: document.getElementById('m-noise-type-btn'),
+      mNoiseTypeLabel: document.getElementById('m-noise-type-label'),
+      mNoiseSlider: document.getElementById('m-noise-slider'),
+      mMuteBtn: document.getElementById('m-mute-btn'),
+      mVolumeSlider: document.getElementById('m-volume-slider')
     };
 
     this.renderCategories();
@@ -787,14 +945,30 @@ const UIController = {
       this.els.volumeSlider.value = prefs.volume;
       this.updateDockSliderFill(this.els.volumeSlider, prefs.volume, 100);
     }
+    if (this.els.mVolumeSlider) {
+      this.els.mVolumeSlider.value = prefs.volume;
+      this.updateDockSliderFill(this.els.mVolumeSlider, prefs.volume, 100);
+    }
     if (this.els.noiseSlider) {
       this.els.noiseSlider.value = prefs.noiseVolume;
       this.updateDockSliderFill(this.els.noiseSlider, prefs.noiseVolume, 100);
     }
+    if (this.els.mNoiseSlider) {
+      this.els.mNoiseSlider.value = prefs.noiseVolume;
+      this.updateDockSliderFill(this.els.mNoiseSlider, prefs.noiseVolume, 100);
+    }
+
+    // Initialize noise type from prefs
+    if (prefs.noiseType) {
+      WebAudioEngine.setNoiseType(prefs.noiseType);
+      this.updateNoiseTypeLabels(prefs.noiseType);
+    }
+
     PlayerEngine.setLoop(prefs.loopState || 'category');
     PlayerEngine.shuffleOn = !!prefs.shuffleOn;
     this.updateShuffleBtn(PlayerEngine.shuffleOn);
 
+    // Audio Unlock Barrier
     if (this.els.unlockBtn) {
       this.els.unlockBtn.addEventListener('click', () => {
         this.hideUnlockOverlay();
@@ -809,6 +983,18 @@ const UIController = {
       });
     }
 
+    // Interactive Timer Badge Toggle
+    if (this.els.timerBadge) {
+      this.els.timerBadge.addEventListener('click', () => FocusTimer.togglePlayPause());
+      this.els.timerBadge.addEventListener('keydown', (e) => {
+        if (e.code === 'Enter' || e.code === 'Space') {
+          e.preventDefault();
+          FocusTimer.togglePlayPause();
+        }
+      });
+    }
+
+    // Transport buttons
     if (this.els.playPauseBtn) {
       this.els.playPauseBtn.addEventListener('click', () => PlayerEngine.togglePlayPause());
     }
@@ -825,73 +1011,157 @@ const UIController = {
       this.els.shuffleBtn.addEventListener('click', () => PlayerEngine.toggleShuffle());
     }
 
+    // Jitter-Free Seekbar Handlers
     if (this.els.seekbar) {
-      this.els.seekbar.addEventListener('input', (e) => {
+      const startScrub = () => {
+        this.isScrubbing = true;
+      };
+
+      const handleScrub = (e) => {
+        this.isScrubbing = true;
         const val = parseInt(e.target.value, 10);
         const pct = (val / 1000) * 100;
         this.els.seekbar.style.setProperty('--fill-pct', pct + '%');
         const dur = PlayerEngine.getDuration();
-        if (dur > 0) {
+        if (dur > 0 && this.els.timeCurrent) {
           this.els.timeCurrent.textContent = this.formatTime((val / 1000) * dur);
         }
-      });
-      this.els.seekbar.addEventListener('change', (e) => {
-        const val = parseInt(e.target.value, 10);
-        PlayerEngine.seekByFraction(val / 1000);
+      };
+
+      const finishScrub = (e) => {
+        if (this.isScrubbing) {
+          const val = parseInt(this.els.seekbar.value, 10);
+          PlayerEngine.seekByFraction(val / 1000);
+          this.isScrubbing = false;
+        }
+      };
+
+      this.els.seekbar.addEventListener('pointerdown', startScrub);
+      this.els.seekbar.addEventListener('touchstart', startScrub, { passive: true });
+      this.els.seekbar.addEventListener('input', handleScrub);
+      this.els.seekbar.addEventListener('change', finishScrub);
+      this.els.seekbar.addEventListener('pointerup', finishScrub);
+      this.els.seekbar.addEventListener('touchend', finishScrub);
+
+      window.addEventListener('pointerup', () => {
+        if (this.isScrubbing) {
+          const val = parseInt(this.els.seekbar.value, 10);
+          PlayerEngine.seekByFraction(val / 1000);
+          this.isScrubbing = false;
+        }
       });
     }
 
-    if (this.els.volumeSlider) {
-      this.els.volumeSlider.addEventListener('input', (e) => {
-        const val = parseInt(e.target.value, 10);
-        PlayerEngine.setVolume(val);
+    // Volume Sliders
+    const handleVolumeChange = (val) => {
+      PlayerEngine.setVolume(val);
+      if (this.els.volumeSlider) {
+        this.els.volumeSlider.value = val;
         this.updateDockSliderFill(this.els.volumeSlider, val, 100);
-        StorageController.setPref('volume', val);
-        if (val === 0) {
-          this.state.muted = true;
-          if (this.els.volIconOn && this.els.volIconOff) {
-            this.els.volIconOn.style.display = 'none';
-            this.els.volIconOff.style.display = 'block';
-          }
-          if (this.els.muteBtn) this.els.muteBtn.setAttribute('aria-pressed', 'true');
-        } else {
-          if (this.state.muted) {
-            this.state.muted = false;
-            PlayerEngine.mute(false);
-          }
-          if (this.els.volIconOn && this.els.volIconOff) {
-            this.els.volIconOn.style.display = 'block';
-            this.els.volIconOff.style.display = 'none';
-          }
-          if (this.els.muteBtn) this.els.muteBtn.setAttribute('aria-pressed', 'false');
+      }
+      if (this.els.mVolumeSlider) {
+        this.els.mVolumeSlider.value = val;
+        this.updateDockSliderFill(this.els.mVolumeSlider, val, 100);
+      }
+      StorageController.setPref('volume', val);
+
+      if (val === 0) {
+        this.state.muted = true;
+        if (this.els.volIconOn && this.els.volIconOff) {
+          this.els.volIconOn.style.display = 'none';
+          this.els.volIconOff.style.display = 'block';
         }
-      });
+        if (this.els.muteBtn) this.els.muteBtn.setAttribute('aria-pressed', 'true');
+        if (this.els.mMuteBtn) this.els.mMuteBtn.setAttribute('aria-pressed', 'true');
+      } else {
+        if (this.state.muted) {
+          this.state.muted = false;
+          PlayerEngine.mute(false);
+        }
+        if (this.els.volIconOn && this.els.volIconOff) {
+          this.els.volIconOn.style.display = 'block';
+          this.els.volIconOff.style.display = 'none';
+        }
+        if (this.els.muteBtn) this.els.muteBtn.setAttribute('aria-pressed', 'false');
+        if (this.els.mMuteBtn) this.els.mMuteBtn.setAttribute('aria-pressed', 'false');
+      }
+    };
+
+    if (this.els.volumeSlider) {
+      this.els.volumeSlider.addEventListener('input', (e) => handleVolumeChange(parseInt(e.target.value, 10)));
+    }
+    if (this.els.mVolumeSlider) {
+      this.els.mVolumeSlider.addEventListener('input', (e) => handleVolumeChange(parseInt(e.target.value, 10)));
     }
 
     if (this.els.muteBtn) {
       this.els.muteBtn.addEventListener('click', () => this.toggleMute());
     }
+    if (this.els.mMuteBtn) {
+      this.els.mMuteBtn.addEventListener('click', () => this.toggleMute());
+    }
 
-    if (this.els.noiseToggleBtn) {
-      this.els.noiseToggleBtn.addEventListener('click', () => {
-        const val = this.els.noiseSlider ? parseInt(this.els.noiseSlider.value, 10) : 30;
-        WebAudioEngine.toggle(val);
-        const active = WebAudioEngine.isPlaying;
+    // Dual Ambient Noise Controls (Brown / Pink)
+    const handleNoiseToggle = () => {
+      const val = this.els.noiseSlider ? parseInt(this.els.noiseSlider.value, 10) : 30;
+      WebAudioEngine.toggle(val);
+      const active = WebAudioEngine.isPlaying;
+      const typeLabel = WebAudioEngine.noiseType === 'pink' ? 'Pink' : 'Brown';
+
+      if (this.els.noiseToggleBtn) {
         this.els.noiseToggleBtn.setAttribute('aria-pressed', active ? 'true' : 'false');
         this.els.noiseToggleBtn.classList.toggle('is-active', active);
-        this.showToast(active ? 'Brown noise started' : 'Brown noise stopped');
-      });
+      }
+      if (this.els.mNoiseToggleBtn) {
+        this.els.mNoiseToggleBtn.setAttribute('aria-pressed', active ? 'true' : 'false');
+        this.els.mNoiseToggleBtn.classList.toggle('is-active', active);
+      }
+
+      this.showToast(active ? `${typeLabel} noise started` : 'Ambient noise stopped');
+    };
+
+    if (this.els.noiseToggleBtn) {
+      this.els.noiseToggleBtn.addEventListener('click', handleNoiseToggle);
     }
+    if (this.els.mNoiseToggleBtn) {
+      this.els.mNoiseToggleBtn.addEventListener('click', handleNoiseToggle);
+    }
+
+    const handleNoiseTypeToggle = () => {
+      const nextType = WebAudioEngine.toggleNoiseType();
+      this.updateNoiseTypeLabels(nextType);
+      const cap = nextType === 'pink' ? 'Pink' : 'Brown';
+      this.showToast(`Switched to ${cap} noise`);
+    };
+
+    if (this.els.noiseTypeBtn) {
+      this.els.noiseTypeBtn.addEventListener('click', handleNoiseTypeToggle);
+    }
+    if (this.els.mNoiseTypeBtn) {
+      this.els.mNoiseTypeBtn.addEventListener('click', handleNoiseTypeToggle);
+    }
+
+    const handleNoiseSliderChange = (val) => {
+      WebAudioEngine.setVolume(val);
+      if (this.els.noiseSlider) {
+        this.els.noiseSlider.value = val;
+        this.updateDockSliderFill(this.els.noiseSlider, val, 100);
+      }
+      if (this.els.mNoiseSlider) {
+        this.els.mNoiseSlider.value = val;
+        this.updateDockSliderFill(this.els.mNoiseSlider, val, 100);
+      }
+      StorageController.setPref('noiseVolume', val);
+    };
 
     if (this.els.noiseSlider) {
-      this.els.noiseSlider.addEventListener('input', (e) => {
-        const val = parseInt(e.target.value, 10);
-        WebAudioEngine.setVolume(val);
-        this.updateDockSliderFill(this.els.noiseSlider, val, 100);
-        StorageController.setPref('noiseVolume', val);
-      });
+      this.els.noiseSlider.addEventListener('input', (e) => handleNoiseSliderChange(parseInt(e.target.value, 10)));
+    }
+    if (this.els.mNoiseSlider) {
+      this.els.mNoiseSlider.addEventListener('input', (e) => handleNoiseSliderChange(parseInt(e.target.value, 10)));
     }
 
+    // Timer Preset & Play Buttons
     if (this.els.timerPlayBtn) {
       this.els.timerPlayBtn.addEventListener('click', () => FocusTimer.togglePlayPause());
     }
@@ -902,6 +1172,28 @@ const UIController = {
       this.els.timerPreset.addEventListener('change', (e) => FocusTimer.setPreset(parseInt(e.target.value, 10)));
     }
 
+    if (this.els.mTimerPlayBtn) {
+      this.els.mTimerPlayBtn.addEventListener('click', () => FocusTimer.togglePlayPause());
+    }
+    if (this.els.mTimerResetBtn) {
+      this.els.mTimerResetBtn.addEventListener('click', () => FocusTimer.reset());
+    }
+    if (this.els.mTimerPreset) {
+      this.els.mTimerPreset.addEventListener('change', (e) => FocusTimer.setPreset(parseInt(e.target.value, 10)));
+    }
+
+    // Mobile Tools Sheet Drawer
+    if (this.els.mobileToolsBtn) {
+      this.els.mobileToolsBtn.addEventListener('click', () => this.toggleMobileToolsSheet());
+    }
+    if (this.els.mobileToolsClose) {
+      this.els.mobileToolsClose.addEventListener('click', () => this.hideMobileToolsSheet());
+    }
+    if (this.els.mobileToolsBackdrop) {
+      this.els.mobileToolsBackdrop.addEventListener('click', () => this.hideMobileToolsSheet());
+    }
+
+    // Dock Favorite button
     if (this.els.dockFavBtn) {
       this.els.dockFavBtn.addEventListener('click', () => {
         if (PlayerEngine.currentTrack) {
@@ -919,6 +1211,7 @@ const UIController = {
       });
     }
 
+    // PiP controls & Dragging
     if (this.els.pipToggleBtn) {
       this.els.pipToggleBtn.addEventListener('click', () => this.togglePip());
     }
@@ -928,7 +1221,9 @@ const UIController = {
     if (this.els.pipCloseBtn) {
       this.els.pipCloseBtn.addEventListener('click', () => this.hidePip());
     }
+    this.initPipDrag();
 
+    // Zen Mode
     if (this.els.zenBtn) {
       this.els.zenBtn.addEventListener('click', () => this.toggleZenMode());
     }
@@ -936,6 +1231,7 @@ const UIController = {
       this.els.zenCloseBtn.addEventListener('click', () => this.toggleZenMode());
     }
 
+    // Shortcuts Panel
     if (this.els.shortcutsBtn) {
       this.els.shortcutsBtn.addEventListener('click', () => this.showShortcuts());
     }
@@ -950,6 +1246,7 @@ const UIController = {
       });
     }
 
+    // Search input
     if (this.els.searchInput) {
       this.els.searchInput.addEventListener('input', (e) => {
         const q = e.target.value.trim();
@@ -975,6 +1272,7 @@ const UIController = {
       });
     }
 
+    // Shelves clear
     if (this.els.recentClearBtn) {
       this.els.recentClearBtn.addEventListener('click', () => {
         StorageController.clearRecent();
@@ -983,6 +1281,7 @@ const UIController = {
       });
     }
 
+    // Timer completion dialog
     if (this.els.timerDoneRestart) {
       this.els.timerDoneRestart.addEventListener('click', () => {
         FocusTimer.setPreset(FocusTimer.preset || 90);
@@ -1006,6 +1305,103 @@ const UIController = {
     }
 
     this.setupKeyboardShortcuts();
+  },
+
+  updateNoiseTypeLabels(type) {
+    const isPink = type === 'pink';
+    const label = isPink ? 'Pink' : 'Brown';
+    if (this.els.noiseTypeLabel) this.els.noiseTypeLabel.textContent = label;
+    if (this.els.mNoiseTypeLabel) this.els.mNoiseTypeLabel.textContent = label;
+    if (this.els.noiseTypeBtn) {
+      this.els.noiseTypeBtn.classList.toggle('is-pink', isPink);
+      this.els.noiseTypeBtn.setAttribute('aria-label', `Noise type: ${label}. Click to toggle`);
+    }
+    if (this.els.mNoiseTypeBtn) {
+      this.els.mNoiseTypeBtn.classList.toggle('is-pink', isPink);
+      this.els.mNoiseTypeBtn.setAttribute('aria-label', `Noise type: ${label}. Click to toggle`);
+    }
+  },
+
+  toggleMobileToolsSheet() {
+    this.state.mobileToolsOpen = !this.state.mobileToolsOpen;
+    if (this.els.mobileToolsSheet) {
+      this.els.mobileToolsSheet.setAttribute('aria-hidden', this.state.mobileToolsOpen ? 'false' : 'true');
+    }
+    if (this.els.mobileToolsBtn) {
+      this.els.mobileToolsBtn.setAttribute('aria-expanded', this.state.mobileToolsOpen ? 'true' : 'false');
+    }
+  },
+
+  hideMobileToolsSheet() {
+    this.state.mobileToolsOpen = false;
+    if (this.els.mobileToolsSheet) {
+      this.els.mobileToolsSheet.setAttribute('aria-hidden', 'true');
+    }
+    if (this.els.mobileToolsBtn) {
+      this.els.mobileToolsBtn.setAttribute('aria-expanded', 'false');
+    }
+  },
+
+  /**
+   * Lightweight pointer dragging for the Picture-in-Picture window
+   */
+  initPipDrag() {
+    const frame = this.els.pipFrame;
+    if (!frame) return;
+    const header = frame.querySelector('.pip-frame__header');
+    if (!header) return;
+
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    let initLeft = 0;
+    let initTop = 0;
+
+    header.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('button')) return;
+      isDragging = true;
+      header.setPointerCapture(e.pointerId);
+
+      const rect = frame.getBoundingClientRect();
+      startX = e.clientX;
+      startY = e.clientY;
+      initLeft = rect.left;
+      initTop = rect.top;
+
+      frame.style.bottom = 'auto';
+      frame.style.right = 'auto';
+      frame.style.left = `${initLeft}px`;
+      frame.style.top = `${initTop}px`;
+      frame.classList.add('is-dragging');
+    });
+
+    header.addEventListener('pointermove', (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+
+      const rect = frame.getBoundingClientRect();
+      const maxX = window.innerWidth - rect.width - 8;
+      const maxY = window.innerHeight - rect.height - 8;
+
+      const newLeft = Math.max(8, Math.min(initLeft + dx, maxX));
+      const newTop = Math.max(8, Math.min(initTop + dy, maxY));
+
+      frame.style.left = `${newLeft}px`;
+      frame.style.top = `${newTop}px`;
+    });
+
+    const stopDrag = (e) => {
+      if (!isDragging) return;
+      isDragging = false;
+      frame.classList.remove('is-dragging');
+      try {
+        header.releasePointerCapture(e.pointerId);
+      } catch (err) {}
+    };
+
+    header.addEventListener('pointerup', stopDrag);
+    header.addEventListener('pointercancel', stopDrag);
   },
 
   renderCategories() {
@@ -1087,6 +1483,9 @@ const UIController = {
 
       if (PlayerEngine.currentTrack && PlayerEngine.currentTrack.id === track.id) {
         card.classList.add('is-playing');
+        if (PlayerEngine.isPlaying) {
+          card.classList.add('is-audio-playing');
+        }
       }
 
       const isFav = StorageController.isFavorite(track.id);
@@ -1105,28 +1504,29 @@ const UIController = {
       img.alt = '';
       img.loading = 'lazy';
       img.onerror = function() {
-        this.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='90'%3E%3Crect width='120' height='90' fill='%23171b26'/%3E%3C/svg%3E";
+        this.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='180'%3E%3Crect width='320' height='180' fill='%23171b26'/%3E%3C/svg%3E";
       };
 
       const overlay = document.createElement('div');
       overlay.className = 'track-card__overlay';
+
       const playCircle = document.createElement('div');
       playCircle.className = 'track-card__play-circle';
-      playCircle.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="5,3 19,12 5,21"/></svg>';
+      playCircle.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="5,3 19,12 5,21"/></svg>';
       overlay.appendChild(playCircle);
 
       const eq = document.createElement('div');
       eq.className = 'track-card__eq';
       eq.innerHTML = '<span class="eq-bar"></span><span class="eq-bar"></span><span class="eq-bar"></span><span class="eq-bar"></span>';
 
-      const dur = document.createElement('span');
-      dur.className = 'track-card__duration';
-      dur.textContent = track.duration || '';
+      const durBadge = document.createElement('span');
+      durBadge.className = 'track-card__duration';
+      durBadge.textContent = track.duration;
 
       thumbWrap.appendChild(img);
       thumbWrap.appendChild(overlay);
       thumbWrap.appendChild(eq);
-      thumbWrap.appendChild(dur);
+      thumbWrap.appendChild(durBadge);
 
       const info = document.createElement('div');
       info.className = 'track-card__info';
@@ -1134,51 +1534,54 @@ const UIController = {
       const top = document.createElement('div');
       top.className = 'track-card__top';
 
-      const titleEl = document.createElement('h3');
-      titleEl.className = 'track-card__title';
-      titleEl.textContent = track.title;
+      const title = document.createElement('h3');
+      title.className = 'track-card__title';
+      title.textContent = track.title;
 
       const favBtn = document.createElement('button');
       favBtn.className = 'track-card__fav-btn';
-      favBtn.setAttribute('aria-label', 'Favorite');
+      favBtn.setAttribute('aria-label', isFav ? 'Remove from favorites' : 'Add to favorites');
       favBtn.setAttribute('aria-pressed', isFav ? 'true' : 'false');
       favBtn.setAttribute('data-track-id', track.id);
       favBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
 
       favBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const favorited = StorageController.toggleFavorite(track.id);
-        favBtn.setAttribute('aria-pressed', favorited ? 'true' : 'false');
+        const nowFav = StorageController.toggleFavorite(track.id);
+        favBtn.setAttribute('aria-pressed', nowFav ? 'true' : 'false');
+        favBtn.setAttribute('aria-label', nowFav ? 'Remove from favorites' : 'Add to favorites');
         if (PlayerEngine.currentTrack && PlayerEngine.currentTrack.id === track.id) {
           if (this.els.dockFavBtn) {
-            this.els.dockFavBtn.setAttribute('aria-pressed', favorited ? 'true' : 'false');
+            this.els.dockFavBtn.setAttribute('aria-pressed', nowFav ? 'true' : 'false');
           }
         }
         this.renderShelves();
-        this.showToast(favorited ? 'Added to favorites' : 'Removed from favorites');
+        this.showToast(nowFav ? 'Added to favorites' : 'Removed from favorites');
       });
 
-      top.appendChild(titleEl);
+      top.appendChild(title);
       top.appendChild(favBtn);
 
-      const artistEl = document.createElement('p');
-      artistEl.className = 'track-card__artist';
-      artistEl.textContent = track.artist;
+      const artist = document.createElement('p');
+      artist.className = 'track-card__artist';
+      artist.textContent = track.artist;
 
       const meta = document.createElement('div');
       meta.className = 'track-card__meta';
+
       const dot = document.createElement('span');
       dot.className = 'track-card__cat-dot';
       dot.style.background = catColor;
-      const catLabelEl = document.createElement('span');
-      catLabelEl.className = 'track-card__cat-label';
-      catLabelEl.textContent = catLabel;
+
+      const catText = document.createElement('span');
+      catText.className = 'track-card__cat-label';
+      catText.textContent = catLabel;
 
       meta.appendChild(dot);
-      meta.appendChild(catLabelEl);
+      meta.appendChild(catText);
 
       info.appendChild(top);
-      info.appendChild(artistEl);
+      info.appendChild(artist);
       info.appendChild(meta);
 
       card.appendChild(thumbWrap);
@@ -1443,10 +1846,16 @@ const UIController = {
 
     if (this.els.trackGrid) {
       const prevPlaying = this.els.trackGrid.querySelectorAll('.track-card.is-playing');
-      prevPlaying.forEach(el => el.classList.remove('is-playing'));
+      prevPlaying.forEach(el => {
+        el.classList.remove('is-playing');
+        el.classList.remove('is-audio-playing');
+      });
       const currentCard = this.els.trackGrid.querySelector(`.track-card[data-track-id="${track.id}"]`);
       if (currentCard) {
         currentCard.classList.add('is-playing');
+        if (PlayerEngine.isPlaying) {
+          currentCard.classList.add('is-audio-playing');
+        }
         currentCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
     }
@@ -1460,6 +1869,16 @@ const UIController = {
     if (this.els.playPauseBtn) {
       this.els.playPauseBtn.setAttribute('aria-label', isPlaying ? 'Pause' : 'Play');
     }
+
+    // Dynamic Equalizer Pause State
+    document.body.classList.toggle('is-audio-playing', isPlaying);
+    if (this.els.trackGrid) {
+      const activeCard = this.els.trackGrid.querySelector('.track-card.is-playing');
+      if (activeCard) {
+        activeCard.classList.toggle('is-audio-playing', isPlaying);
+      }
+    }
+
     if (isPlaying) {
       PlayerEngine.startSeekSync();
     } else {
@@ -1468,7 +1887,7 @@ const UIController = {
   },
 
   updateSeekbar(current, duration) {
-    if (!this.els.seekbar) return;
+    if (!this.els.seekbar || this.isScrubbing) return;
     if (duration > 0) {
       const pct = (current / duration) * 100;
       this.els.seekbar.value = Math.min(1000, Math.round(pct * 10));
@@ -1602,6 +2021,7 @@ const UIController = {
           break;
         case 'Escape':
           if (this.state.zenActive) this.toggleZenMode();
+          if (this.state.mobileToolsOpen) this.hideMobileToolsSheet();
           this.hideShortcuts();
           this.hideTimerDone();
           break;
@@ -1644,6 +2064,9 @@ const UIController = {
     if (this.els.muteBtn) {
       this.els.muteBtn.setAttribute('aria-pressed', this.state.muted ? 'true' : 'false');
     }
+    if (this.els.mMuteBtn) {
+      this.els.mMuteBtn.setAttribute('aria-pressed', this.state.muted ? 'true' : 'false');
+    }
     this.showToast(this.state.muted ? 'Muted' : 'Unmuted');
   },
 
@@ -1683,10 +2106,19 @@ const UIController = {
       this.els.volumeSlider.value = prefs.volume;
       this.updateDockSliderFill(this.els.volumeSlider, prefs.volume, 100);
     }
+    if (this.els.mVolumeSlider) {
+      this.els.mVolumeSlider.value = prefs.volume;
+      this.updateDockSliderFill(this.els.mVolumeSlider, prefs.volume, 100);
+    }
     if (this.els.noiseSlider) {
       this.els.noiseSlider.value = prefs.noiseVolume;
       this.updateDockSliderFill(this.els.noiseSlider, prefs.noiseVolume, 100);
     }
+    if (this.els.mNoiseSlider) {
+      this.els.mNoiseSlider.value = prefs.noiseVolume;
+      this.updateDockSliderFill(this.els.mNoiseSlider, prefs.noiseVolume, 100);
+    }
+
     this.updateLoopBtn(prefs.loopState || 'category');
     this.updateShuffleBtn(prefs.shuffleOn || false);
 
