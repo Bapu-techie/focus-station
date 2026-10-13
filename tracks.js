@@ -2,7 +2,7 @@
 /**
  * FocusStation — Curated Audio Architecture
  * Handcrafted for Deep Focus, Emotional Wellbeing & High-Performance Study.
- * Exposed on window.FOCUS_CATALOG for instant file:// and GitHub Pages execution.
+ * Exposed on window.FOCUS_CATALOG for existing application compatibility.
  */
 window.FOCUS_CATALOG = {
 
@@ -12,42 +12,42 @@ window.FOCUS_CATALOG = {
       label: 'Deep Focus',
       icon: '◉',
       accentColor: '#0284c7',
-      description: 'Indian Classical · Bansuri · Alpha Waves for Logic & Math'
+      description: 'Indian Classical · Bansuri · Instrumental Study Music'
     },
     {
       id: 'soul-heart',
       label: 'Soul & Heart',
       icon: '♥',
       accentColor: '#e11d48',
-      description: 'Soulful Hindi · Meaningful Poetry · Emotional & Heart Touching'
+      description: 'Hindi Romance · Soulful Vocals · Emotional Melodies'
     },
     {
       id: 'code-flow',
       label: 'Code Flow',
       icon: '⌗',
       accentColor: '#7c3aed',
-      description: 'Lo-Fi Chillhop · Downtempo Synthwave · Binaural Study Waves'
+      description: 'Lo-Fi Hip-Hop · Chillhop · Synthwave · Coding Music'
     },
     {
       id: 'desk-flow',
       label: 'Desk Flow',
       icon: '◈',
       accentColor: '#059669',
-      description: 'Warm Acoustic · Fingerstyle Guitar · Calming Piano'
+      description: 'Soft Piano · Acoustic Guitar · Ambient Work Music'
     },
     {
       id: 'energy-reset',
       label: 'Energy Reset',
       icon: '◐',
       accentColor: '#d97706',
-      description: 'Upbeat Instrumental · Mood Elevation · Post-Study Walk'
+      description: 'Upbeat Instrumentals · Nature Sounds · Walking Music'
     }
   ],
 
   tracks: [
 
     // ══════════════════════════════════════════════════════════
-    // 1. DEEP FOCUS — Zero-Lyric Classical & Alpha Wave Mastery
+    // 1. DEEP FOCUS — Classical & Concentration Music
     // ══════════════════════════════════════════════════════════
     {
       id: 'trk_001',
@@ -60,15 +60,15 @@ window.FOCUS_CATALOG = {
     {
       id: 'trk_002',
       youtube_id: 'DWcJFNfaw9c',
-      title: 'Deep Focus — 3-Hour Classical Study Symphony',
-      artist: 'Yellow Brick Cinema',
-      category_id: 'deep-focus',
-      duration: '3:00:00'
+      title: 'Lofi Hip Hop Radio — Beats to Relax and Study To',
+      artist: 'Lofi Girl',
+      category_id: 'code-flow',
+      duration: 'Live'
     },
     {
       id: 'trk_003',
       youtube_id: 'WPni755-Krg',
-      title: 'Alpha Waves — Cognitive Memory & Deep Concentration',
+      title: 'Alpha Waves — Deep Concentration Music',
       artist: 'Greenred Productions',
       category_id: 'deep-focus',
       duration: '3:05:47'
@@ -76,18 +76,18 @@ window.FOCUS_CATALOG = {
     {
       id: 'trk_004',
       youtube_id: 'hHW1oY26kxQ',
-      title: 'Relaxing Piano & Ambient Water Flow',
-      artist: 'Soothing Relaxation',
-      category_id: 'deep-focus',
-      duration: '1:01:41'
+      title: 'Lofi Hip Hop Radio — Relax and Study Beats',
+      artist: 'Lofi Girl',
+      category_id: 'code-flow',
+      duration: 'Live'
     },
     {
       id: 'trk_005',
       youtube_id: '4xDzrJKXOOY',
-      title: 'Brain Power & Logical Focus Soundscape',
-      artist: 'Greenred Productions',
-      category_id: 'deep-focus',
-      duration: '3:01:16'
+      title: 'Synthwave Radio — Beats to Chill and Game To',
+      artist: 'Lofi Girl',
+      category_id: 'code-flow',
+      duration: 'Live'
     },
     {
       id: 'trk_006',
@@ -99,12 +99,12 @@ window.FOCUS_CATALOG = {
     },
 
     // ══════════════════════════════════════════════════════════
-    // 2. SOUL & HEART — Meaningful Hindi & Emotional Warmth
+    // 2. SOUL & HEART — Sufi, Hindi & Emotional Music
     // ══════════════════════════════════════════════════════════
     {
       id: 'trk_007',
       youtube_id: 'T94PHkuydcw',
-      title: 'Kun Faya Kun — Sufi Serenity & Spiritual Surrender',
+      title: 'Kun Faya Kun — Sufi Devotional Melody',
       artist: 'A.R. Rahman, Javed Ali, Mohit Chauhan',
       category_id: 'soul-heart',
       duration: '7:52'
@@ -112,7 +112,7 @@ window.FOCUS_CATALOG = {
     {
       id: 'trk_008',
       youtube_id: 'kw4tT7SCmaY',
-      title: 'Afreen Afreen — Acoustic Melody & Pure Soul',
+      title: 'Afreen Afreen — Coke Studio Romantic Melody',
       artist: 'Rahat Fateh Ali Khan & Momina Mustehsan',
       category_id: 'soul-heart',
       duration: '6:45'
@@ -120,7 +120,7 @@ window.FOCUS_CATALOG = {
     {
       id: 'trk_009',
       youtube_id: '7D4vNcK6D38',
-      title: 'Tu Jhoom — Letting Go & Unconditional Self-Peace',
+      title: 'Tu Jhoom — Sufi Soul & Emotional Vocals',
       artist: 'Abida Parveen & Naseebo Lal',
       category_id: 'soul-heart',
       duration: '6:56'
@@ -128,7 +128,7 @@ window.FOCUS_CATALOG = {
     {
       id: 'trk_010',
       youtube_id: 'cM7QeOwh5e0',
-      title: 'Tajdar-e-Haram — Meditative Devotional Calm',
+      title: 'Tajdar-e-Haram — Soulful Devotional Qawwali',
       artist: 'Atif Aslam (Coke Studio)',
       category_id: 'soul-heart',
       duration: '10:28'
@@ -136,7 +136,7 @@ window.FOCUS_CATALOG = {
     {
       id: 'trk_011',
       youtube_id: '1gukvtH_a3I',
-      title: 'Chaudhary — Earthy Folk Fusion & Raw Emotion',
+      title: 'Chaudhary — Folk Fusion & Indian Folk Vocals',
       artist: 'Amit Trivedi & Mame Khan',
       category_id: 'soul-heart',
       duration: '7:38'
@@ -144,7 +144,7 @@ window.FOCUS_CATALOG = {
     {
       id: 'trk_012',
       youtube_id: 'tSZJ23_7tSg',
-      title: 'Madari — The Rhythm of Destiny & Grounded Spirit',
+      title: 'Madari — Soulful Bollywood Fusion',
       artist: 'Clinton Cerejo, Vishal Dadlani, Sonu Kakkar',
       category_id: 'soul-heart',
       duration: '5:26'
@@ -159,20 +159,20 @@ window.FOCUS_CATALOG = {
     },
 
     // ══════════════════════════════════════════════════════════
-    // 3. CODE FLOW — Lo-Fi Chillhop & Engineering Deep Work
+    // 3. CODE FLOW — Lo-Fi, Chillhop & Coding Music
     // ══════════════════════════════════════════════════════════
     {
       id: 'trk_014',
       youtube_id: 'jfKfPfyJRdk',
-      title: 'Lofi Hip Hop Mix — Study Session Beats',
+      title: 'Lofi Hip Hop Radio — Beats to Relax and Study To',
       artist: 'Lofi Girl',
       category_id: 'code-flow',
-      duration: '1:00:00'
+      duration: 'Live'
     },
     {
       id: 'trk_015',
       youtube_id: 'rUxyKA_-grg',
-      title: '1 A.M Study Session — Late Night Chill Beats',
+      title: '1 A.M. Study Session — Late Night Chill Beats',
       artist: 'Lofi Girl',
       category_id: 'code-flow',
       duration: '1:01:45'
@@ -180,15 +180,15 @@ window.FOCUS_CATALOG = {
     {
       id: 'trk_016',
       youtube_id: 'n61ULEU7CO0',
-      title: 'Midnight Coding — Chillhop Synthwave Mix',
-      artist: 'Chillhop Music',
+      title: 'Best of Lo-Fi Hip Hop — Relax and Study Mix',
+      artist: 'Lofi Girl',
       category_id: 'code-flow',
       duration: '1:05:28'
     },
     {
       id: 'trk_017',
       youtube_id: 'aXItOY0sry8',
-      title: 'Binaural Beats — Beta Waves 14 Hz Focus',
+      title: 'Binaural Beats — Beta Waves Focus Audio',
       artist: 'Greenred Productions',
       category_id: 'code-flow',
       duration: '3:00:00'
@@ -204,14 +204,14 @@ window.FOCUS_CATALOG = {
     {
       id: 'trk_019',
       youtube_id: 'Dx5qFachd3A',
-      title: 'Late Night Lo-Fi — Bug Fixing & Coding Flow',
-      artist: 'Chillhop Music',
-      category_id: 'code-flow',
-      duration: '55:30'
+      title: 'Relaxing Jazz Piano Radio — Slow Jazz Music',
+      artist: 'Relaxing Jazz Piano Radio',
+      category_id: 'desk-flow',
+      duration: 'Live'
     },
 
     // ══════════════════════════════════════════════════════════
-    // 4. DESK FLOW — Acoustic Fingerstyle & Routine Job Calm
+    // 4. DESK FLOW — Piano, Acoustic & Work Ambience
     // ══════════════════════════════════════════════════════════
     {
       id: 'trk_020',
@@ -232,7 +232,7 @@ window.FOCUS_CATALOG = {
     {
       id: 'trk_022',
       youtube_id: 'iNzrwh1OGOA',
-      title: 'Fingerstyle Acoustic Ambient — Remote Work Flow',
+      title: 'Fingerstyle Acoustic — Relaxing Guitar Music',
       artist: 'Guitar Relaxing',
       category_id: 'desk-flow',
       duration: '59:48'
@@ -248,7 +248,7 @@ window.FOCUS_CATALOG = {
     {
       id: 'trk_024',
       youtube_id: 'Rwqq0LRYMhM',
-      title: 'Solo Piano — Minimalist Mind Reset',
+      title: 'Solo Piano — Minimalist Ambient Music',
       artist: 'Peder B. Helland',
       category_id: 'desk-flow',
       duration: '1:00:00'
@@ -256,35 +256,35 @@ window.FOCUS_CATALOG = {
     {
       id: 'trk_025',
       youtube_id: 'lFEFIVf9Htg',
-      title: 'Soft Acoustic Session — Desk Ambience',
+      title: 'Soft Acoustic Session — Relaxing Desk Music',
       artist: 'Guitar Relaxing',
       category_id: 'desk-flow',
       duration: '45:10'
     },
 
     // ══════════════════════════════════════════════════════════
-    // 5. ENERGY RESET — Upbeat Instrumental & Post-Study Reset
+    // 5. ENERGY RESET — Walking, Nature & Recharging
     // ══════════════════════════════════════════════════════════
     {
       id: 'trk_026',
       youtube_id: '9Q634rbsypE',
-      title: 'Upbeat Instrumental — Morning Walk Groove',
-      artist: 'Chillhop Music',
-      category_id: 'energy-reset',
+      title: 'Always — Soft, Beautiful & Relaxing Piano Music',
+      artist: 'Peder B. Helland',
+      category_id: 'desk-flow',
       duration: '50:22'
     },
     {
       id: 'trk_027',
       youtube_id: '7NOSDKb0HlU',
-      title: 'Forest Birdsong & Fresh Air Walking Ambience',
-      artist: 'Nature Relaxation Films',
-      category_id: 'energy-reset',
-      duration: '3:00:00'
+      title: 'Lofi Hip Hop Radio — Relax and Study Beats',
+      artist: 'Lofi Girl',
+      category_id: 'code-flow',
+      duration: 'Live'
     },
     {
       id: 'trk_028',
       youtube_id: 'xTQeVX3DLKI',
-      title: 'Energizing Ambient — Post-Study Recovery',
+      title: 'Energizing Ambient — Music for a Refreshing Break',
       artist: 'Relaxing Records',
       category_id: 'energy-reset',
       duration: '1:02:15'
@@ -292,7 +292,7 @@ window.FOCUS_CATALOG = {
     {
       id: 'trk_029',
       youtube_id: 'NJuSStkIZBg',
-      title: 'Uplifting Focus Beats — Movement & Walk',
+      title: 'Uplifting Beats — Movement and Walking Music',
       artist: 'Study Music Project',
       category_id: 'energy-reset',
       duration: '58:40'
@@ -308,10 +308,226 @@ window.FOCUS_CATALOG = {
     {
       id: 'trk_031',
       youtube_id: 'xNN7iTA57jM',
-      title: 'Indian Classical Energy — Raag Bhairavi Vibrancy',
-      artist: 'Pandit Ravi Shankar',
+      title: 'Forest Sounds — Woodland Ambience & Birdsong',
+      artist: 'Nature Sounds',
       category_id: 'energy-reset',
-      duration: '35:00'
+      duration: 'Unknown'
+    },
+
+    // ══════════════════════════════════════════════════════════
+    // 6. ORIGINAL USER PLAYLIST — Six Hindi Song Links
+    // ══════════════════════════════════════════════════════════
+    {
+      id: 'trk_032',
+      youtube_id: 'Hf--3X8LXtU',
+      title: 'Original Playlist Track — Title Needs Verification',
+      artist: 'Original YouTube Link',
+      category_id: 'soul-heart',
+      duration: 'Unknown'
+    },
+    {
+      id: 'trk_033',
+      youtube_id: 'AB-I3vsUk6g',
+      title: 'Abhi Na Jao Chhodkar — World Music Day Concert 24',
+      artist: 'Sourendro-Soumyojit',
+      category_id: 'soul-heart',
+      duration: 'Unknown'
+    },
+    {
+      id: 'trk_034',
+      youtube_id: 'BSJa1UytM8w',
+      title: 'Saiyaara — Title Song',
+      artist: 'Faheem Abdullah',
+      category_id: 'soul-heart',
+      duration: '4:11'
+    },
+    {
+      id: 'trk_035',
+      youtube_id: 'SVjkxdjivts',
+      title: 'Meri Aashiqui',
+      artist: 'Jubin Nautiyal',
+      category_id: 'soul-heart',
+      duration: '4:40'
+    },
+    {
+      id: 'trk_036',
+      youtube_id: 'uFGreSkTMck',
+      title: 'Jaan Se Guzarte Hain',
+      artist: 'Shashwat Sachdev',
+      category_id: 'soul-heart',
+      duration: 'Unknown'
+    },
+    {
+      id: 'trk_037',
+      youtube_id: 'EHCG8kno2Lg',
+      title: 'Tu Jaane Na — Lyrical Video',
+      artist: 'Atif Aslam',
+      category_id: 'soul-heart',
+      duration: '5:40'
+    },
+
+    // ══════════════════════════════════════════════════════════
+    // 7. HINDI ROMANCE — Soulful & Emotional Melodies
+    // ══════════════════════════════════════════════════════════
+    {
+      id: 'trk_038',
+      youtube_id: 'sK7riqg2mr4',
+      title: 'Agar Tum Saath Ho',
+      artist: 'Alka Yagnik & Arijit Singh',
+      category_id: 'soul-heart',
+      duration: '5:41'
+    },
+    {
+      id: 'trk_039',
+      youtube_id: '284Ov7ysmfA',
+      title: 'Channa Mereya',
+      artist: 'Arijit Singh',
+      category_id: 'soul-heart',
+      duration: '4:49'
+    },
+    {
+      id: 'trk_040',
+      youtube_id: 'MJyKN-8UncM',
+      title: 'Shayad',
+      artist: 'Arijit Singh',
+      category_id: 'soul-heart',
+      duration: '4:07'
+    },
+    {
+      id: 'trk_041',
+      youtube_id: 'cYOB941gyXI',
+      title: 'Hawayein',
+      artist: 'Arijit Singh',
+      category_id: 'soul-heart',
+      duration: '4:50'
+    },
+    {
+      id: 'trk_042',
+      youtube_id: 'DMRRC0rwO_I',
+      title: 'Khairiyat',
+      artist: 'Arijit Singh',
+      category_id: 'soul-heart',
+      duration: '4:40'
+    },
+    {
+      id: 'trk_043',
+      youtube_id: 'Umqb9KENgmk',
+      title: 'Tum Hi Ho',
+      artist: 'Arijit Singh',
+      category_id: 'soul-heart',
+      duration: '4:22'
+    },
+    {
+      id: 'trk_044',
+      youtube_id: 'Etkd-07gnxM',
+      title: 'O Maahi',
+      artist: 'Arijit Singh',
+      category_id: 'soul-heart',
+      duration: '4:06'
+    },
+    {
+      id: 'trk_045',
+      youtube_id: 'HrR5p8SbfI0',
+      title: 'Satranga',
+      artist: 'Arijit Singh',
+      category_id: 'soul-heart',
+      duration: '4:31'
+    },
+    {
+      id: 'trk_046',
+      youtube_id: 'xitd9mEZIHk',
+      title: 'Mast Magan',
+      artist: 'Arijit Singh & Chinmayi Sripada',
+      category_id: 'soul-heart',
+      duration: '4:40'
+    },
+    {
+      id: 'trk_047',
+      youtube_id: 'SAcpESN_Fk4',
+      title: 'Dil Diyan Gallan',
+      artist: 'Atif Aslam',
+      category_id: 'soul-heart',
+      duration: '4:20'
+    },
+    {
+      id: 'trk_048',
+      youtube_id: 'gJLVTKhTnog',
+      title: 'Husn',
+      artist: 'Anuv Jain',
+      category_id: 'soul-heart',
+      duration: '3:37'
+    },
+    {
+      id: 'trk_049',
+      youtube_id: '1poXN3jF3Bw',
+      title: 'Mann Bharryaa 2.0',
+      artist: 'B Praak',
+      category_id: 'soul-heart',
+      duration: '4:26'
+    },
+    {
+      id: 'trk_050',
+      youtube_id: 'gvyUuxdRdR4',
+      title: 'Raataan Lambiyan',
+      artist: 'Jubin Nautiyal & Asees Kaur',
+      category_id: 'soul-heart',
+      duration: '3:50'
+    },
+    {
+      id: 'trk_051',
+      youtube_id: 'rLR37BR88T0',
+      title: 'Tera Hone Laga Hoon',
+      artist: 'Atif Aslam & Alisha Chinai',
+      category_id: 'soul-heart',
+      duration: '4:56'
+    },
+    {
+      id: 'trk_052',
+      youtube_id: 'BadBAMnPX0I',
+      title: 'Pehli Nazar Mein',
+      artist: 'Atif Aslam',
+      category_id: 'soul-heart',
+      duration: '4:52'
+    },
+    {
+      id: 'trk_053',
+      youtube_id: 'AgX2II9si7w',
+      title: 'Tujhe Kitna Chahne Lage',
+      artist: 'Arijit Singh',
+      category_id: 'soul-heart',
+      duration: '4:45'
+    },
+    {
+      id: 'trk_054',
+      youtube_id: 'VhRwuWp4MQ8',
+      title: 'Jeene Laga Hoon',
+      artist: 'Atif Aslam & Shreya Ghoshal',
+      category_id: 'soul-heart',
+      duration: '3:56'
+    },
+    {
+      id: 'trk_055',
+      youtube_id: 'VmjynPkyLRQ',
+      title: 'Tu Chahiye',
+      artist: 'Atif Aslam',
+      category_id: 'soul-heart',
+      duration: '4:32'
+    },
+    {
+      id: 'trk_056',
+      youtube_id: 'V7LwfY5U5WI',
+      title: 'Ranjha',
+      artist: 'B Praak & Jasleen Royal',
+      category_id: 'soul-heart',
+      duration: '3:48'
+    },
+    {
+      id: 'trk_057',
+      youtube_id: '3ldq-qAN7Fs',
+      title: 'Jeena Jeena',
+      artist: 'Atif Aslam',
+      category_id: 'soul-heart',
+      duration: '3:49'
     }
 
   ]
