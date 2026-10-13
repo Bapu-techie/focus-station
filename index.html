@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FocusStation — Distraction-Free Audio Workstation</title>
+  <meta name="description" content="A distraction-free music workstation for GATE CS, programmers, and deep-work professionals. No algorithmic rabbit holes.">
+  <meta name="theme-color" content="#08090d">
+
+  <!-- Preconnect for font CDN performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <!-- Inter (UI) + JetBrains Mono (timers/duration) -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Single design-system stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ════════════════════════════════════════════════════════════
+       AUDIO UNLOCK BARRIER
+       Resolves browser autoplay policies before any YT API call.
+       ════════════════════════════════════════════════════════════ -->
+  <div id="unlock-overlay" class="unlock-overlay" role="dialog" aria-modal="true" aria-label="Begin focus session">
+    <div class="unlock-panel">
+      <div class="unlock-logo" aria-hidden="true">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+          <circle cx="24" cy="24" r="22" stroke="#38bdf8" stroke-width="1.5"/>
+          <circle cx="24" cy="24" r="8"  fill="#38bdf8" opacity="0.9"/>
+          <circle cx="24" cy="24" r="14" stroke="#38bdf8" stroke-width="1" opacity="0.35"/>
+        </svg>
+      </div>
+      <h1 class="unlock-title">FocusStation</h1>
+      <p  class="unlock-subtitle">Distraction-free audio for deep work &amp; GATE CS preparation</p>
+
+      <button id="unlock-btn" class="unlock-btn" autofocus>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="5,3 19,12 5,21"/></svg>
+        <span>Begin Focus Session</span>
+      </button>
+
+      <div class="unlock-hints">
+        <span><kbd>Space</kbd> Play/Pause</span>
+        <span><kbd>F</kbd> Zen Mode</span>
+        <span><kbd>M</kbd> Mute</span>
+        <span><kbd>→</kbd> Next</span>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════════════════════════════════════════
+       MAIN APP  (aria-hidden until unlocked)
+       ════════════════════════════════════════════════════════════ -->
+  <div id="app" class="app" aria-hidden="true">
+
+    <!-- ── Header ─────────────────────────────────────────────── -->
+    <header id="header" class="header">
+
+      <div class="header__brand">
+        <svg class="header__logo-svg" width="24" height="24" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+          <circle cx="24" cy="24" r="22" stroke="#38bdf8" stroke-width="1.5"/>
+          <circle cx="24" cy="24" r="8"  fill="#38bdf8" opacity="0.9"/>
+          <circle cx="24" cy="24" r="14" stroke="#38bdf8" stroke-width="1" opacity="0.35"/>
+        </svg>
+        <span class="header__name">FocusStation</span>
+        <span class="header__tagline">Deep Work Audio</span>
+      </div>
+
+      <div class="header__right">
+
+        <!-- Ultradian Timer Badge (live countdown — click to toggle) -->
+        <div class="timer-badge" id="timer-badge" role="button" tabindex="0" title="Ultradian Focus Timer — Click to Start/Pause" aria-label="Toggle Ultradian Focus Timer">
+          <svg class="timer-badge__icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"/>
+            <polyline points="12 7 12 12 15.5 12"/>
+          </svg>
+          <span class="timer-badge__time" id="timer-badge-time">90:00</span>
+          <span class="timer-badge__status" id="timer-badge-status">Ready</span>
+        </div>
+
+        <!-- Zen Mode Launch -->
+        <button class="header-icon-btn" id="zen-btn" aria-label="Toggle Zen Focus Mode (F)" title="Zen Focus Mode [F]">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+
+        <!-- Keyboard shortcuts -->
+        <button class="header-icon-btn" id="shortcuts-btn" aria-label="Keyboard shortcuts">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true">
+            <rect x="2" y="7" width="20" height="13" rx="2"/>
+            <path d="M6 11h.01M10 11h.01M14 11h.01M8 15h8M18 11h.01"/>
+          </svg>
+        </button>
+
+      </div>
+    </header>
+
+
+    <!-- ── Controls Bar: Search + Category Pills ─────────────── -->
+    <div id="controls-bar" class="controls-bar">
+      <div class="controls-bar__inner">
+
+        <!-- Search input -->
+        <div class="search-wrap" role="search">
+          <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input
+            type="search"
+            id="search-input"
+            class="search-input"
+            placeholder="Search tracks, artists…"
+            autocomplete="off"
+            spellcheck="false"
+            aria-label="Search tracks">
+          <button id="search-clear" class="search-clear" aria-label="Clear search" hidden>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Category pills — injected by UIController.renderCategories() -->
+        <nav id="category-nav" class="category-nav" role="tablist" aria-label="Music categories"></nav>
+
+      </div>
+    </div>
+
+
+    <!-- ── Main Workspace ─────────────────────────────────────── -->
+    <main id="workspace" class="workspace" tabindex="-1">
+
+      <!-- Recently Played Shelf -->
+      <section id="recent-shelf-section" class="shelf-section" hidden aria-label="Recently played">
+        <div class="shelf-header">
+          <h2 class="shelf-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <polyline points="1 4 1 10 7 10"/>
+              <path d="M3.51 15a9 9 0 1 0 .49-3.1"/>
+            </svg>
+            Recently Played
+          </h2>
+          <button id="recent-clear-btn" class="shelf-action-btn" aria-label="Clear recently played history">Clear</button>
+        </div>
+        <div class="shelf-scroll" id="recent-list" role="list" aria-label="Recently played tracks"></div>
+      </section>
+
+      <!-- Favorites Shelf -->
+      <section id="favorites-shelf-section" class="shelf-section" hidden aria-label="Favorites">
+        <div class="shelf-header">
+          <h2 class="shelf-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+            Favorites
+          </h2>
+          <span class="shelf-count" id="favorites-count"></span>
+        </div>
+        <div class="shelf-scroll" id="favorites-list" role="list" aria-label="Favorited tracks"></div>
+      </section>
+
+      <!-- Master Track Grid -->
+      <section class="grid-section">
+        <div class="grid-header">
+          <h2 class="grid-title" id="grid-title">All Tracks</h2>
+          <span class="grid-count" id="grid-count"></span>
+        </div>
+        <div id="track-grid" class="track-grid" role="list" aria-label="Track library"></div>
+
+        <!-- No-results state -->
+        <div id="empty-state" class="empty-state" hidden role="status">
+          <div class="empty-state__icon" aria-hidden="true">⊘</div>
+          <p class="empty-state__title">No tracks found</p>
+          <p class="empty-state__sub">Try a different search or category</p>
+        </div>
+      </section>
+
+    </main>
+  </div><!-- /#app -->
+
+
+  <!-- ════════════════════════════════════════════════════════════
+       PiP VIDEO FRAME
+       Fixed bottom-right. Collapsed by default (header-only).
+       YouTube iframe rendered at real size for mobile autoplay.
+       ════════════════════════════════════════════════════════════ -->
+  <div id="pip-frame" class="pip-frame pip-frame--collapsed" role="complementary" aria-label="Video player">
+    <div class="pip-frame__header">
+      <span class="pip-frame__label">Now Playing</span>
+      <div class="pip-frame__controls">
+        <button id="pip-collapse-btn" class="pip-frame__btn" aria-label="Collapse/expand video">
+          <!-- Icon toggled by JS: chevron-up or chevron-down -->
+          <svg id="pip-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+            <polyline points="18 15 12 9 6 15"/>
+          </svg>
+        </button>
+        <button id="pip-close-btn" class="pip-frame__btn" aria-label="Close video frame">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6"  y2="18"/>
+            <line x1="6"  y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <!-- YT iframe injected here by PlayerEngine.init() -->
+    <div class="pip-frame__player">
+      <div id="youtube-player"></div>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════════════════════════════════════════
+       PERSISTENT BOTTOM DOCK PLAYER
+       ════════════════════════════════════════════════════════════ -->
+  <div id="dock" class="dock" role="region" aria-label="Music player">
+
+    <!-- LEFT: Track identity -->
+    <div class="dock__left">
+      <div class="dock__thumb-wrap">
+        <!-- Placeholder: 1x1 transparent svg encoded -->
+        <img
+          id="dock-thumb"
+          class="dock__thumb"
+          src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56'%3E%3Crect width='56' height='56' fill='%23171b26'/%3E%3C/svg%3E"
+          alt="Current track thumbnail"
+          width="56" height="56" loading="lazy">
+      </div>
+      <div class="dock__track-info">
+        <p class="dock__title"  id="dock-title">No track selected</p>
+        <p class="dock__artist" id="dock-artist">—</p>
+      </div>
+      <div class="dock__track-btns">
+        <button class="dock-icon-btn mobile-only-btn" id="mobile-tools-btn" aria-label="Focus and Audio Tools" aria-haspopup="dialog" aria-expanded="false" title="Focus & Audio Tools">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="4" y1="21" x2="4" y2="14"/>
+            <line x1="4" y1="10" x2="4" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="12"/>
+            <line x1="12" y1="8" x2="12" y2="3"/>
+            <line x1="20" y1="21" x2="20" y2="16"/>
+            <line x1="20" y1="12" x2="20" y2="3"/>
+            <line x1="1" y1="14" x2="7" y2="14"/>
+            <line x1="9" y1="8" x2="15" y2="8"/>
+            <line x1="17" y1="16" x2="23" y2="16"/>
+          </svg>
+        </button>
+        <button class="dock-icon-btn" id="dock-fav-btn"    aria-label="Add to favorites" aria-pressed="false">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+          </svg>
+        </button>
+        <button class="dock-icon-btn" id="pip-toggle-btn" aria-label="Toggle video frame" aria-pressed="false" title="Show/Hide Video">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <rect x="2" y="7" width="20" height="14" rx="2"/>
+            <polyline points="17 2 22 2 22 7"/>
+            <line x1="15" y1="9" x2="22" y2="2"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- CENTER: Playback controls + seekbar -->
+    <div class="dock__center">
+      <div class="dock__transport">
+
+        <button class="dock-icon-btn" id="shuffle-btn" aria-label="Toggle shuffle" aria-pressed="false" title="Shuffle (in-category)">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="16 3 21 3 21 8"/>
+            <line x1="4" y1="20" x2="21" y2="3"/>
+            <polyline points="21 16 21 21 16 21"/>
+            <line x1="15" y1="15" x2="21" y2="21"/>
+            <line x1="4" y1="4" x2="9" y2="9"/>
+          </svg>
+        </button>
+
+        <button class="dock-icon-btn" id="prev-btn" aria-label="Previous track">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <polygon points="19,20 9,12 19,4"/>
+            <rect x="5" y="4" width="2" height="16" rx="1"/>
+          </svg>
+        </button>
+
+        <button class="dock__play-btn" id="play-pause-btn" aria-label="Play">
+          <svg id="play-icon"  width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="5,3 19,12 5,21"/></svg>
+          <svg id="pause-icon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="display:none"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+        </button>
+
+        <button class="dock-icon-btn" id="next-btn" aria-label="Next track">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <polygon points="5,4 15,12 5,20"/>
+            <rect x="17" y="4" width="2" height="16" rx="1"/>
+          </svg>
+        </button>
+
+        <!-- Tri-state loop: category → single → off -->
+        <button class="dock-icon-btn" id="loop-btn" aria-label="Loop mode: Category" data-loop="category" title="Loop: Category → Single → Off">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="17 1 21 5 17 9"/>
+            <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+            <polyline points="7 23 3 19 7 15"/>
+            <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+          </svg>
+        </button>
+
+      </div>
+
+      <!-- Seekbar + time display -->
+      <div class="dock__progress">
+        <span class="dock__time mono" id="time-current">0:00</span>
+        <div class="seekbar-wrap">
+          <input
+            type="range"
+            id="seekbar"
+            class="seekbar"
+            min="0" max="1000" value="0" step="1"
+            aria-label="Seek track position"
+            aria-valuetext="0:00">
+        </div>
+        <span class="dock__time mono" id="time-total">—:——</span>
+      </div>
+    </div>
+
+    <!-- RIGHT: Timer · Noise · Volume -->
+    <div class="dock__right">
+
+      <!-- Ultradian Timer -->
+      <div class="dock__module dock__module--timer">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accent-amber)" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"/>
+          <polyline points="12 7 12 12 15.5 12"/>
+        </svg>
+        <select id="timer-preset" class="timer-preset-select mono" aria-label="Focus timer preset">
+          <option value="90">90m Focus</option>
+          <option value="45">45m Sprint</option>
+          <option value="15">15m NSDR</option>
+        </select>
+        <button class="dock-icon-btn" id="timer-play-btn" aria-label="Start timer" title="Start/Pause timer">
+          <svg id="t-play-icon"  width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="5,3 19,12 5,21"/></svg>
+          <svg id="t-pause-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="display:none"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+        </button>
+        <button class="dock-icon-btn" id="timer-reset-btn" aria-label="Reset timer" title="Reset timer">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <path d="M1 4v6h6"/>
+            <path d="M3.51 15a9 9 0 1 0 .49-3.1"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Ambient Noise Generator (Brown / Pink) -->
+      <div class="dock__module dock__module--noise">
+        <button class="dock-icon-btn" id="noise-toggle-btn" aria-label="Toggle ambient noise" aria-pressed="false" title="Ambient Noise">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
+            <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/>
+            <path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
+          </svg>
+        </button>
+        <button type="button" class="noise-type-btn" id="noise-type-btn" aria-label="Noise type: Brown. Click to toggle Pink" title="Toggle Brown / Pink Noise">
+          <span id="noise-type-label">Brown</span>
+        </button>
+        <input
+          type="range"
+          id="noise-slider"
+          class="dock-slider"
+          min="0" max="100" value="30"
+          aria-label="Ambient noise volume"
+          title="Ambient Noise Volume">
+      </div>
+
+      <!-- Master Volume -->
+      <div class="dock__module dock__module--volume">
+        <button class="dock-icon-btn" id="mute-btn" aria-label="Mute master volume" aria-pressed="false" title="Mute [M]">
+          <svg id="vol-icon-on"   width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+          </svg>
+          <svg id="vol-icon-off" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="display:none">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <line x1="23" y1="9" x2="17" y2="15"/>
+            <line x1="17" y1="9" x2="23" y2="15"/>
+          </svg>
+        </button>
+        <input
+          type="range"
+          id="volume-slider"
+          class="dock-slider"
+          min="0" max="100" value="80"
+          aria-label="Master volume">
+      </div>
+
+    </div><!-- /.dock__right -->
+  </div><!-- /#dock -->
+
+
+  <!-- ════════════════════════════════════════════════════════════
+       ZEN FOCUS OVERLAY  (fullscreen OLED black)
+       ════════════════════════════════════════════════════════════ -->
+  <div id="zen-overlay" class="zen-overlay" role="dialog" aria-modal="true" aria-label="Zen Focus Mode" aria-hidden="true">
+
+    <button id="zen-close-btn" class="zen-close-btn" aria-label="Exit Zen Mode">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <line x1="18" y1="6" x2="6" y2="18"/>
+        <line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+      <span>Exit</span>
+      <kbd>F</kbd>
+    </button>
+
+    <div class="zen-body">
+      <!-- Breath animation circle -->
+      <div class="zen-breathe-wrap" aria-hidden="true">
+        <div id="zen-breathe" class="zen-breathe">
+          <div class="zen-breathe__ring zen-breathe__ring--outer"></div>
+          <div class="zen-breathe__ring zen-breathe__ring--mid"></div>
+          <div class="zen-breathe__core"></div>
+        </div>
+      </div>
+
+      <!-- Metadata -->
+      <div class="zen-meta">
+        <p  class="zen-timer-display mono" id="zen-timer-display">—:——</p>
+        <h2 class="zen-title"   id="zen-title">No track selected</h2>
+        <p  class="zen-artist"  id="zen-artist">—</p>
+        <p  class="zen-category" id="zen-category">—</p>
+      </div>
+    </div>
+
+    <div class="zen-footer" aria-label="Keyboard shortcuts">
+      <span class="zen-hint"><kbd>Space</kbd> Play/Pause</span>
+      <span class="zen-hint"><kbd>→</kbd> Next</span>
+      <span class="zen-hint"><kbd>←</kbd> Prev</span>
+      <span class="zen-hint"><kbd>M</kbd> Mute</span>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════════════════════════════════════════
+       MOBILE TOOLS DRAWER (Bottom Sheet for <768px screens)
+       ════════════════════════════════════════════════════════════ -->
+  <div id="mobile-tools-sheet" class="mobile-tools-sheet" role="dialog" aria-modal="true" aria-label="Focus & Audio Tools" aria-hidden="true">
+    <div class="mobile-tools-backdrop" id="mobile-tools-backdrop"></div>
+    <div class="mobile-tools-panel">
+      <div class="mobile-tools-handle" aria-hidden="true"></div>
+      <div class="mobile-tools-header">
+        <h3 class="mobile-tools-title">Focus &amp; Audio Tools</h3>
+        <button id="mobile-tools-close" class="dock-icon-btn" aria-label="Close tools">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <!-- Ultradian Timer Section -->
+      <div class="mobile-tool-row">
+        <div class="mobile-tool-label">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-amber)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 12"/></svg>
+          <span>Focus Timer</span>
+        </div>
+        <div class="mobile-tool-controls">
+          <select id="m-timer-preset" class="timer-preset-select mono" aria-label="Mobile timer preset">
+            <option value="90">90m Focus</option>
+            <option value="45">45m Sprint</option>
+            <option value="15">15m NSDR</option>
+          </select>
+          <button class="dock-icon-btn" id="m-timer-play-btn" aria-label="Start/Pause mobile timer">
+            <svg id="m-t-play-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+            <svg id="m-t-pause-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+          </button>
+          <button class="dock-icon-btn" id="m-timer-reset-btn" aria-label="Reset mobile timer">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 .49-3.1"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Ambient Noise Section -->
+      <div class="mobile-tool-row">
+        <div class="mobile-tool-label">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/><path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+          <span>Ambient Noise</span>
+        </div>
+        <div class="mobile-tool-controls">
+          <button class="dock-icon-btn" id="m-noise-toggle-btn" aria-label="Toggle mobile ambient noise" aria-pressed="false">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/></svg>
+          </button>
+          <button type="button" class="noise-type-btn" id="m-noise-type-btn" title="Toggle Brown/Pink noise">
+            <span id="m-noise-type-label">Brown</span>
+          </button>
+          <input type="range" id="m-noise-slider" class="dock-slider" min="0" max="100" value="30" aria-label="Mobile noise volume">
+        </div>
+      </div>
+
+      <!-- Master Volume Section -->
+      <div class="mobile-tool-row">
+        <div class="mobile-tool-label">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+          <span>Master Volume</span>
+        </div>
+        <div class="mobile-tool-controls">
+          <button class="dock-icon-btn" id="m-mute-btn" aria-label="Mobile mute" aria-pressed="false">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/></svg>
+          </button>
+          <input type="range" id="m-volume-slider" class="dock-slider" min="0" max="100" value="80" aria-label="Mobile master volume">
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════════════════════════════════════════
+       KEYBOARD SHORTCUTS PANEL
+       ════════════════════════════════════════════════════════════ -->
+  <div id="shortcuts-overlay" class="modal-overlay shortcuts-overlay" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts" aria-hidden="true">
+    <div class="shortcuts-panel">
+      <div class="shortcuts-header">
+        <h2>Keyboard Shortcuts</h2>
+        <button id="shortcuts-close-btn" class="dock-icon-btn" aria-label="Close shortcuts panel">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="shortcuts-grid">
+        <div class="shortcut-row"><kbd>Space</kbd>   <span>Play / Pause</span></div>
+        <div class="shortcut-row"><kbd>→ / ←</kbd>   <span>Next / Previous track</span></div>
+        <div class="shortcut-row"><kbd>↑ / ↓</kbd>   <span>Seek +5s / −5s</span></div>
+        <div class="shortcut-row"><kbd>M</kbd>        <span>Toggle mute</span></div>
+        <div class="shortcut-row"><kbd>F</kbd>        <span>Zen Focus Mode</span></div>
+        <div class="shortcut-row"><kbd>Esc</kbd>      <span>Close panels</span></div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════════════════════════════════════════
+       TIMER COMPLETE PROMPT
+       ════════════════════════════════════════════════════════════ -->
+  <div id="timer-done-overlay" class="modal-overlay timer-done-overlay" role="alertdialog" aria-modal="true" aria-label="Focus cycle complete" aria-hidden="true">
+    <div class="timer-done-panel">
+      <div class="timer-done-icon" aria-hidden="true">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--accent-amber)" stroke-width="1.5" stroke-linecap="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+      </div>
+      <h2 class="timer-done-title">Focus Cycle Complete</h2>
+      <p  class="timer-done-sub">Music has faded. Stand up, stretch, and take a 5–10 minute walk.<br>Your brain needs physical movement to consolidate memory.</p>
+      <div class="timer-done-actions">
+        <button id="timer-done-restart" class="btn-primary">Start New Cycle</button>
+        <button id="timer-done-dismiss" class="btn-ghost">Dismiss</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════════════════════════════════════════
+       TOAST NOTIFICATIONS
+       ════════════════════════════════════════════════════════════ -->
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+
+  <!-- ════════════════════════════════════════════════════════════
+       SCRIPTS
+       tracks.js must load before app.js (defines window.FOCUS_CATALOG)
+       ════════════════════════════════════════════════════════════ -->
+  <script src="tracks.js"></script>
+  <script src="app.js"></script>
+
+</body>
+</html>
